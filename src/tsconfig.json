@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "sourceMap": true,
+    "target": "es6",
+    "strict": true,
+    "jsx": "react-native",
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "incremental": true,
+    "lib": ["es2016"],
+    "outDir": "../dist",
+    "noEmitOnError": true,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "removeComments": true,
+    "types": ["react-native-gesture-handler"]
+  }
+}

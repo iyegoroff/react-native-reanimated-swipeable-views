@@ -1,0 +1,34 @@
+{
+  "extends": [
+    "tslint-config-standard",
+    "tslint-react",
+    "tslint-react-hooks",
+    "tslint-immutable/all"
+  ],
+  "rules": {
+    "ban-ts-ignore": true,
+    "jsx-no-multiline-js": false,
+    "jsx-wrap-multiline": false,
+    "jsx-space-before-trailing-slash": true,
+    "no-parameter-reassignment": true,
+    "no-shadowed-variable": true,
+    "max-line-length": [true, 100],
+    "max-file-line-count": [true, 300],
+    "ter-indent": [true, 2, { "SwitchCase": true }],
+    "space-before-function-paren": [true, {
+      "anonymous": "always",
+      "named": "never",
+      "asyncArrow": "always"
+    }],
+    "no-angle-bracket-type-assertion": true,
+    "no-any": true,
+    "no-unsafe-any": true,
+    "no-non-null-assertion": true,
+    "no-null-keyword": true,
+    "prefer-const": true,
+    "no-import-side-effect": true,
+    "react-hooks-nesting": "error",
+    "jsx-no-lambda": false,
+    "switch-default": true
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "name": "react-native-reanimated-swipeable-list",
+  "version": "0.0.1",
+  "description": "Natively animated swipeable FlatList, SectionList & HOC for wrapping custom lists",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "preversion": "npm run build && npm run lint",
+    "postversion": "git push && git push --tags",
+    "build": "rm -rf dist && mkdir dist && cp src/index.d.ts dist/index.d.ts && tsc -p src",
+    "lint": "tslint -p src && tslint -p example",
+    "watch": "npm run build -- --watch"
+  },
+  "keywords": [
+    "react-native",
+    "swipeable-list"
+  ],
+  "files": [
+    "example",
+    "dist",
+    "src"
+  ],
+  "author": "iyegoroff <iegoroff@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/iyegoroff/react-native-reanimated-swipeable-list/issues"
+  },
+  "homepage": "https://github.com/iyegoroff/react-native-reanimated-swipeable-list#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/iyegoroff/react-native-reanimated-swipeable-list.git"
+  },
+  "peerDependencies": {
+    "react": "*",
+    "react-native": "*",
+    "react-native-reanimated": "*",
+    "react-native-gesture-handler": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^16.9.17",
+    "@types/react-native": "^0.61.0",
+    "react-native-gesture-handler": "^1.5.3",
+    "react-native-reanimated": "^1.7.0",
+    "tslint": "^5.20.1",
+    "tslint-config-standard": "^9.0.0",
+    "tslint-immutable": "^6.0.1",
+    "tslint-react": "^4.1.0",
+    "tslint-react-hooks": "^2.2.1",
+    "typescript": "^3.7.5"
+  }
+}
