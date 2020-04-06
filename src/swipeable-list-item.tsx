@@ -1,5 +1,3 @@
-// tslint:disable: no-expression-statement
-
 import React, { useCallback, useEffect } from 'react'
 import { Swipeable } from 'react-native-gesture-handler'
 
@@ -19,7 +17,6 @@ const RefSwipeableItem = (
   }: Props & { readonly children: React.ReactNode },
   forwardedRef?: React.Ref<Swipeable>
 ) => {
-
   const willOpen = useCallback(() => {
     onWillOpen(itemKey)
     onSwipeableWillOpen?.()

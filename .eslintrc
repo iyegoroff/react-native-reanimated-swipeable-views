@@ -1,0 +1,34 @@
+{
+  "root": true,
+  "parser": "@typescript-eslint/parser",
+  "parserOptions": {
+    "project": [
+      "./src/tsconfig.json",
+      "./example/src/tsconfig.json"
+    ]
+  },
+  "plugins": [
+    "@typescript-eslint",
+    "prettier"
+  ],
+  "extends": [
+    "standard-with-typescript",
+    "plugin:react/recommended",
+    "plugin:react-hooks/recommended",
+    "prettier",
+    "prettier/@typescript-eslint",
+    "prettier/standard",
+    "prettier/react"
+  ],
+  "rules": {
+    "prettier/prettier": "error",
+    "@typescript-eslint/consistent-type-definitions": ["error", "type"],
+    "@typescript-eslint/explicit-function-return-type": "off",
+    "@typescript-eslint/space-before-function-paren": ["error", "never"]
+  },
+  "settings": {
+    "react": {
+      "version": "16.9.0"
+    }
+  }
+}

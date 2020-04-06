@@ -24,7 +24,7 @@
     "react": "16.9.0",
     "react-native": "0.61.5",
     "react-native-gesture-handler": "^1.5.3",
-    "react-native-reanimated": "github:iyegoroff/react-native-reanimated#typings-fix",
+    "react-native-reanimated": "^1.7.1",
     "react-native-reanimated-swipeable-list": "file:../"
   },
   "devDependencies": {
