@@ -13,6 +13,7 @@
     "no-null"
   ],
   "extends": [
+    "@react-native-community",
     "standard-with-typescript",
     "plugin:react/recommended",
     "plugin:react-hooks/recommended",

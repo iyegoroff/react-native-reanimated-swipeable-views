@@ -7,7 +7,8 @@ import {
   StatusBar,
   FlatListProps,
   Text,
-  ListRenderItemInfo
+  ListRenderItemInfo,
+  Button
 } from 'react-native'
 import {
   PanGestureHandler,
@@ -46,8 +47,15 @@ import Animated, {
   call,
   max,
   min,
-  divide
+  divide,
+  defined,
+  proc
 } from 'react-native-reanimated'
+import invariant from 'ts-tiny-invariant'
+
+function assertDefined<T>(value: T, message: string): asserts value is NonNullable<T> {
+  invariant(value !== undefined && value !== null, message)
+}
 
 enum Spring {
   none,
@@ -71,17 +79,17 @@ enum Transition {
 
 enum TranslationState {
   closed,
+  leadingOpeningThresholdPassed,
   leadingOpened,
+  leadingClosingThresholdPassed,
   leadingClosed,
+  trailingOpeningThresholdPassed,
   trailingOpened,
+  trailingClosingThresholdPassed,
   trailingClosed
 }
 
-enum AnimationState {
-  finished,
-  running
-}
-
+const panGestureHandlerActiveOffset = [-20, 20]
 const limitThreshold = 0.1
 
 const defaultSwipeableSpringConfig = SpringUtils.makeConfigFromBouncinessAndSpeed({
@@ -98,6 +106,138 @@ const defaultSwipeableTransitionConfig = {
 type Item = 'left' | 'right' | 'top' | 'bottom'
 
 type AnimationMethod = 'drag' | 'swipe' | 'transition'
+
+const isTrailingOpeningThresholdPassed = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    leadingThreshold: Animated.Node<number>,
+    leadingSnapPoint: Animated.Node<number>,
+    hasTrailingItem: boolean
+  ) =>
+    and(
+      or(
+        eq(translationState, TranslationState.trailingClosed),
+        eq(translationState, TranslationState.leadingClosed),
+        eq(translationState, TranslationState.closed),
+        eq(translationState, TranslationState.trailingClosingThresholdPassed)
+      ),
+      and(lessOrEq(translation, leadingThreshold), greaterThan(translation, leadingSnapPoint)),
+      defined(hasTrailingItem)
+    )
+)
+
+const isTrailingOpened = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    leadingSnapPoint: Animated.Node<number>,
+    hasTrailingItem: boolean
+  ) =>
+    and(
+      eq(translationState, TranslationState.trailingOpeningThresholdPassed),
+      lessOrEq(translation, leadingSnapPoint),
+      defined(hasTrailingItem)
+    )
+)
+
+const isTrailingClosingThresholdPassed = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    leadingThreshold: Animated.Node<number>,
+    middleSnapPoint: Animated.Node<number>,
+    hasTrailingItem: boolean
+  ) =>
+    and(
+      or(
+        eq(translationState, TranslationState.trailingOpened),
+        eq(translationState, TranslationState.trailingOpeningThresholdPassed)
+      ),
+      and(lessThan(translation, middleSnapPoint), greaterThan(translation, leadingThreshold)),
+      defined(hasTrailingItem)
+    )
+)
+
+const isTrailingClosed = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    middleSnapPoint: Animated.Node<number>,
+    hasTrailingItem: boolean
+  ) =>
+    and(
+      eq(translationState, TranslationState.trailingClosingThresholdPassed),
+      greaterOrEq(translation, middleSnapPoint),
+      defined(hasTrailingItem)
+    )
+)
+
+const isLeadingOpeningThresholdPassed = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    trailingThreshold: Animated.Node<number>,
+    trailingSnapPoint: Animated.Node<number>,
+    hasLeadingItem: boolean
+  ) =>
+    and(
+      or(
+        eq(translationState, TranslationState.leadingClosed),
+        eq(translationState, TranslationState.trailingClosed),
+        eq(translationState, TranslationState.closed),
+        eq(translationState, TranslationState.leadingClosingThresholdPassed)
+      ),
+      and(greaterOrEq(translation, trailingThreshold), lessThan(translation, trailingSnapPoint)),
+      defined(hasLeadingItem)
+    )
+)
+
+const isLeadingOpened = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    trailingSnapPoint: Animated.Node<number>,
+    hasLeadingItem: boolean
+  ) =>
+    and(
+      eq(translationState, TranslationState.leadingOpeningThresholdPassed),
+      greaterOrEq(translation, trailingSnapPoint),
+      defined(hasLeadingItem)
+    )
+)
+
+const isLeadingClosingThresholdPassed = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    trailingThreshold: Animated.Node<number>,
+    middleSnapPoint: Animated.Node<number>,
+    hasLeadingItem: boolean
+  ) =>
+    and(
+      or(
+        eq(translationState, TranslationState.leadingOpened),
+        eq(translationState, TranslationState.leadingOpeningThresholdPassed)
+      ),
+      and(greaterThan(translation, middleSnapPoint), lessThan(translation, trailingThreshold)),
+      defined(hasLeadingItem)
+    )
+)
+
+const isLeadingClosed = proc(
+  (
+    translationState: Animated.Node<TranslationState>,
+    translation: Animated.Node<number>,
+    middleSnapPoint: Animated.Node<number>,
+    hasLeadingItem: boolean
+  ) =>
+    and(
+      eq(translationState, TranslationState.leadingClosingThresholdPassed),
+      lessOrEq(translation, middleSnapPoint),
+      defined(hasLeadingItem)
+    )
+)
 
 type SwipeableItemProps = {
   readonly gapSize: Animated.Node<number>
@@ -119,13 +259,13 @@ type Props = {
   readonly springConfig?: Omit<Animated.SpringConfig, 'toValue'>
   readonly transitionConfig?: Omit<Animated.TimingConfig, 'toValue'>
   readonly panGestureHandlerConfig?: PanGestureHandlerProperties
+  readonly onDragStart?: () => void
+  readonly onDragEnd?: () => void
   readonly onChange?: (options: {
     readonly item: Item
-    readonly action: 'open' | 'close'
+    readonly action: 'opened' | 'closed' | 'opening-threshold-passed' | 'closing-threshold-passed'
     readonly method: AnimationMethod
   }) => void
-  readonly onAnimationStart?: () => void
-  readonly onAnimationEnd?: () => void
 }
 
 class Swipeable extends React.Component<Props> {
@@ -134,6 +274,7 @@ class Swipeable extends React.Component<Props> {
   private readonly size = new Value<number>(0)
   private readonly transition = new Value<Transition>(Transition.none)
   private readonly resetSpring = new Value<0 | 1>(0)
+  private readonly dragEnabled = new Value<0 | 1>(1)
   private readonly translation: Animated.Node<number>
   private readonly panGestureEvent: (event: PanGestureHandlerGestureEvent) => void
   private readonly leadingItemProps: SwipeableItemProps
@@ -156,14 +297,12 @@ class Swipeable extends React.Component<Props> {
       renderLeadingItem,
       renderTrailingItem,
       onChange,
-      onAnimationStart,
-      onAnimationEnd
+      onDragStart,
+      onDragEnd
     } = props
 
     const hasLeadingItem = renderLeadingItem !== undefined
     const hasTrailingItem = renderTrailingItem !== undefined
-
-    let start = Date.now()
 
     const snapPoints = {
       leading: hasTrailingItem ? sub(this.trailingOffset, this.size) : new Value(0),
@@ -180,43 +319,19 @@ class Swipeable extends React.Component<Props> {
     const gestureState = new Value(GestureState.UNDETERMINED)
     const translation = new Value(0)
     const translationState = new Value(TranslationState.closed)
-    const animationState = new Value(AnimationState.finished)
     const clock = new Clock()
     const dragOffset = new Value(0)
     const velocity = new Value(0)
     const activeSpring = new Value(Spring.none)
     const activeLimit = new Value(Limit.none)
     const nextDragPos = add(translation, sub(dragOffset, prevDragOffset))
-    const animationChange = (
-      from: AnimationState,
-      to: AnimationState,
-      handler: (() => void) | undefined
-    ) =>
-      cond(eq(animationState, from), [
-        set(animationState, to),
-
-        cond(
-          eq(+(handler !== undefined), 1),
-          call([], () => handler?.())
-        )
-      ])
-    const animationStart = animationChange(
-      AnimationState.finished,
-      AnimationState.running,
-      onAnimationStart
-    )
-    const animationEnd = animationChange(
-      AnimationState.running,
-      AnimationState.finished,
-      onAnimationEnd
-    )
+    const dragEnded = new Value(1)
     const runSpringTransition = (dest: Animated.Node<number>) =>
       this.runSpring({
         clock,
         value: translation,
         velocity,
-        dest,
-        animationEnd
+        dest
       })
     const nextLeadingSpringPos = runSpringTransition(snapPoints.leading)
     const nextMiddleSpringPos = runSpringTransition(snapPoints.middle)
@@ -240,19 +355,35 @@ class Swipeable extends React.Component<Props> {
     ])
 
     const onChangeCall = (method: AnimationMethod) =>
-      cond(and(neq(this.size, 0), eq(+(onChange !== undefined), 1)), [
+      cond(and(neq(this.size, 0), defined(onChange !== undefined)), [
         cond<TranslationState>(
-          and(
-            neq(translationState, TranslationState.trailingOpened),
-            lessOrEq(translation, snapPoints.leading),
-            eq(+hasTrailingItem, 1)
+          isTrailingOpeningThresholdPassed(
+            translationState,
+            translation,
+            thresholds.leading,
+            snapPoints.leading,
+            hasTrailingItem
           ),
+          [
+            set(translationState, TranslationState.trailingOpeningThresholdPassed),
+            call([], () =>
+              onChange?.({
+                item: isHorizontal ? 'right' : 'bottom',
+                action: 'opening-threshold-passed',
+                method
+              })
+            )
+          ]
+        ),
+
+        cond<TranslationState>(
+          isTrailingOpened(translationState, translation, snapPoints.leading, hasTrailingItem),
           [
             set(translationState, TranslationState.trailingOpened),
             call([], () =>
               onChange?.({
                 item: isHorizontal ? 'right' : 'bottom',
-                action: 'open',
+                action: 'opened',
                 method
               })
             )
@@ -260,17 +391,19 @@ class Swipeable extends React.Component<Props> {
         ),
 
         cond<TranslationState>(
-          and(
-            neq(translationState, TranslationState.leadingOpened),
-            greaterOrEq(translation, snapPoints.trailing),
-            eq(+hasLeadingItem, 1)
+          isTrailingClosingThresholdPassed(
+            translationState,
+            translation,
+            thresholds.leading,
+            snapPoints.middle,
+            hasTrailingItem
           ),
           [
-            set(translationState, TranslationState.leadingOpened),
+            set(translationState, TranslationState.trailingClosingThresholdPassed),
             call([], () =>
               onChange?.({
-                item: isHorizontal ? 'left' : 'top',
-                action: 'open',
+                item: isHorizontal ? 'right' : 'bottom',
+                action: 'closing-threshold-passed',
                 method
               })
             )
@@ -278,17 +411,13 @@ class Swipeable extends React.Component<Props> {
         ),
 
         cond<TranslationState>(
-          and(
-            eq(translationState, TranslationState.trailingOpened),
-            greaterOrEq(translation, snapPoints.middle),
-            eq(+hasTrailingItem, 1)
-          ),
+          isTrailingClosed(translationState, translation, snapPoints.middle, hasTrailingItem),
           [
             set(translationState, TranslationState.trailingClosed),
             call([], () =>
               onChange?.({
                 item: isHorizontal ? 'right' : 'bottom',
-                action: 'close',
+                action: 'closed',
                 method
               })
             )
@@ -296,17 +425,67 @@ class Swipeable extends React.Component<Props> {
         ),
 
         cond<TranslationState>(
-          and(
-            eq(translationState, TranslationState.leadingOpened),
-            lessOrEq(translation, snapPoints.middle),
-            eq(+hasLeadingItem, 1)
+          isLeadingOpeningThresholdPassed(
+            translationState,
+            translation,
+            thresholds.trailing,
+            snapPoints.trailing,
+            hasLeadingItem
           ),
+          [
+            set(translationState, TranslationState.leadingOpeningThresholdPassed),
+            call([], () =>
+              onChange?.({
+                item: isHorizontal ? 'left' : 'top',
+                action: 'opening-threshold-passed',
+                method
+              })
+            )
+          ]
+        ),
+
+        cond<TranslationState>(
+          isLeadingOpened(translationState, translation, snapPoints.trailing, hasLeadingItem),
+          [
+            set(translationState, TranslationState.leadingOpened),
+            call([], () =>
+              onChange?.({
+                item: isHorizontal ? 'left' : 'top',
+                action: 'opened',
+                method
+              })
+            )
+          ]
+        ),
+
+        cond<TranslationState>(
+          isLeadingClosingThresholdPassed(
+            translationState,
+            translation,
+            thresholds.trailing,
+            snapPoints.middle,
+            hasLeadingItem
+          ),
+          [
+            set(translationState, TranslationState.leadingClosingThresholdPassed),
+            call([], () =>
+              onChange?.({
+                item: isHorizontal ? 'left' : 'top',
+                action: 'closing-threshold-passed',
+                method
+              })
+            )
+          ]
+        ),
+
+        cond<TranslationState>(
+          isLeadingClosed(translationState, translation, snapPoints.middle, hasLeadingItem),
           [
             set(translationState, TranslationState.leadingClosed),
             call([], () =>
               onChange?.({
                 item: isHorizontal ? 'left' : 'top',
-                action: 'close',
+                action: 'closed',
                 method
               })
             )
@@ -316,7 +495,6 @@ class Swipeable extends React.Component<Props> {
 
     const reset = [
       stopClock(clock),
-      animationStart,
       set(activeSpring, Spring.none),
       set(activeLimit, Limit.none),
       set(dragOffset, 0),
@@ -336,7 +514,7 @@ class Swipeable extends React.Component<Props> {
     )
 
     const active = [
-      cond(and(eq(activeLimit, Limit.none), neq(dragOffset, 0), eq(+limitsEnabled, 1)), [
+      cond(and(eq(activeLimit, Limit.none), neq(dragOffset, 0), defined(limitsEnabled)), [
         set(
           activeLimit,
           cond(
@@ -350,9 +528,9 @@ class Swipeable extends React.Component<Props> {
           )
         ),
 
-        cond(eq(+hasLeadingItem, 0), set(activeLimit, Limit.trailing)),
+        cond(not(hasLeadingItem), set(activeLimit, Limit.trailing)),
 
-        cond(eq(+hasTrailingItem, 0), set(activeLimit, Limit.leading))
+        cond(not(hasTrailingItem), set(activeLimit, Limit.leading))
       ]),
 
       cond(eq(activeLimit, Limit.leading), [
@@ -401,7 +579,7 @@ class Swipeable extends React.Component<Props> {
             or(
               eq(activeSpring, Spring.middle),
               and(
-                lessOrEq(add(translation, multiply(inertia, velocity)), thresholds.trailing),
+                lessThan(add(translation, multiply(inertia, velocity)), thresholds.trailing),
                 eq(activeSpring, Spring.none)
               )
             ),
@@ -439,36 +617,51 @@ class Swipeable extends React.Component<Props> {
       translation
     ] as const
 
-    const dragAnimation = cond(
-      eq(gestureState, GestureState.BEGAN),
-      reset,
+    const checkDragEnd = cond(and(defined(onDragEnd !== undefined), eq(dragEnded, 0)), [
+      set(dragEnded, 1),
+      call([], () => onDragEnd?.())
+    ])
 
+    const dragAnimation = cond(
+      eq(this.dragEnabled, 1),
       cond(
-        eq(gestureState, GestureState.ACTIVE),
-        active,
+        eq(gestureState, GestureState.BEGAN),
+        [
+          cond(
+            defined(onDragStart !== undefined),
+            call([], () => onDragStart?.())
+          ),
+          set(dragEnded, 0),
+          reset
+        ],
 
         cond(
-          or(
-            eq(gestureState, GestureState.END),
-            eq(gestureState, GestureState.CANCELLED),
-            eq(gestureState, GestureState.FAILED)
-          ),
-          end,
-          translation
+          eq(gestureState, GestureState.ACTIVE),
+          active,
+
+          cond(
+            or(
+              eq(gestureState, GestureState.END),
+              eq(gestureState, GestureState.CANCELLED),
+              eq(gestureState, GestureState.FAILED)
+            ),
+            [checkDragEnd, end],
+            translation
+          )
         )
-      )
+      ),
+      [checkDragEnd, translation]
     )
 
     const runTimingTransition = (dest: Animated.Node<number>) =>
       cond(
         eq(translation, dest),
-        translation,
+        [set(this.transition, Transition.none), translation],
         this.runTiming({
           clock,
           value: translation,
           dest,
-          transition: this.transition,
-          animationEnd
+          transition: this.transition
         })
       )
 
@@ -505,18 +698,18 @@ class Swipeable extends React.Component<Props> {
     this.thumbStyle = {
       transform: [
         isHorizontal ? { translateX: this.translation } : { translateY: this.translation }
-      ]
+      ] as any
     }
 
     this.leadingItemStyle = {
       ...(isHorizontal ? styles.leadingHorizontalItem : styles.leadingVerticalItem),
       zIndex: cond(greaterThan(this.translation, snapPoints.middle), 0, -1)
-    }
+    } as any
 
     this.trailingItemStyle = {
       ...(isHorizontal ? styles.trailingHorizontalItem : styles.trailingVerticalItem),
       zIndex: cond(lessThan(this.translation, snapPoints.middle), 0, -1)
-    }
+    } as any
 
     this.leadingItemProps = {
       gapSize: max(this.translation, 0),
@@ -529,23 +722,18 @@ class Swipeable extends React.Component<Props> {
       itemWidth: sub(this.size, this.trailingOffset),
       item: isHorizontal ? 'right' : 'bottom'
     }
-
-    console.warn(`init ${Date.now() - start}`)
-    start = Date.now()
   }
 
   private runTiming({
     clock,
     value,
     dest,
-    transition,
-    animationEnd
+    transition
   }: {
     clock: Clock
     value: Animated.Value<number>
     dest: Animated.Node<number>
     transition: Animated.Value<Transition>
-    animationEnd: Animated.Node<number>
   }) {
     const state = {
       finished: new Value(0),
@@ -559,7 +747,7 @@ class Swipeable extends React.Component<Props> {
       toValue: new Value(0)
     }
 
-    return [
+    return block([
       cond(clockRunning(clock), 0, [
         set(state.finished, 0),
         set(state.frameTime, 0),
@@ -571,24 +759,22 @@ class Swipeable extends React.Component<Props> {
       timing(clock, state, config),
       cond(
         state.finished,
-        block<Transition>([stopClock(clock), animationEnd, set(transition, Transition.none)])
+        block<Transition>([stopClock(clock), set(transition, Transition.none)])
       ),
       state.position
-    ]
+    ])
   }
 
   private runSpring({
     clock,
     value,
     velocity,
-    dest,
-    animationEnd
+    dest
   }: {
     clock: Clock
     value: Animated.Value<number>
     velocity: Animated.Value<number>
     dest: Animated.Node<number>
-    animationEnd: Animated.Node<number>
   }) {
     const state = {
       finished: new Value(0),
@@ -612,7 +798,7 @@ class Swipeable extends React.Component<Props> {
         startClock(clock)
       ]),
       spring(clock, state, config),
-      cond(state.finished, [stopClock(clock), animationEnd]),
+      cond(state.finished, stopClock(clock)),
       state.position
     ]
   }
@@ -630,6 +816,14 @@ class Swipeable extends React.Component<Props> {
   public close() {
     this.resetSpring.setValue(1)
     this.transition.setValue(Transition.close)
+  }
+
+  public enableDrag() {
+    this.dragEnabled.setValue(1)
+  }
+
+  public disableDrag() {
+    this.dragEnabled.setValue(0)
   }
 
   private readonly onLeadingLayout = ({
@@ -662,7 +856,8 @@ class Swipeable extends React.Component<Props> {
       renderLeadingItem: LeadingItem,
       renderTrailingItem: TrailingItem,
       panGestureHandlerConfig,
-      clippingEnabled = true
+      clippingEnabled = true,
+      direction
     } = this.props
 
     const leading =
@@ -685,17 +880,22 @@ class Swipeable extends React.Component<Props> {
         false
       )
 
+    const activeOffset: PanGestureHandlerProperties =
+      direction === 'horizontal'
+        ? { activeOffsetX: panGestureHandlerActiveOffset }
+        : { activeOffsetY: panGestureHandlerActiveOffset }
+
     return (
       <PanGestureHandler
+        {...activeOffset}
         {...panGestureHandlerConfig}
         maxPointers={1}
-        activeOffsetX={[-20, 20]}
         onGestureEvent={this.panGestureEvent}
         onHandlerStateChange={this.panGestureEvent}
       >
         <Animated.View
           onLayout={this.onLayout}
-          style={clippingEnabled ? styles.clippedContainer : styles.container}
+          style={(clippingEnabled ? styles.clippedContainer : styles.container) as any}
         >
           {leading}
           {trailing}
@@ -787,50 +987,50 @@ const Horizontal = (
 
 const HorizontalSwipeable = React.forwardRef(Horizontal)
 
-type VerticalSwipeableProps = Omit<
-  Props,
-  | 'direction'
-  | 'renderLeadingItem'
-  | 'renderTrailingItem'
-  | 'leadingThreshold'
-  | 'trailingThreshold'
-  | 'overshootLeading'
-  | 'overshootTrailing'
-> & {
-  readonly renderTopItem?: Props['renderLeadingItem']
-  readonly renderBottomItem?: Props['renderTrailingItem']
-  readonly overshootTop?: Props['overshootLeading']
-  readonly overshootBottom?: Props['overshootTrailing']
-  readonly topThreshold?: Props['leadingThreshold']
-  readonly bottomThreshold?: Props['trailingThreshold']
-}
+// type VerticalSwipeableProps = Omit<
+//   Props,
+//   | 'direction'
+//   | 'renderLeadingItem'
+//   | 'renderTrailingItem'
+//   | 'leadingThreshold'
+//   | 'trailingThreshold'
+//   | 'overshootLeading'
+//   | 'overshootTrailing'
+// > & {
+//   readonly renderTopItem?: Props['renderLeadingItem']
+//   readonly renderBottomItem?: Props['renderTrailingItem']
+//   readonly overshootTop?: Props['overshootLeading']
+//   readonly overshootBottom?: Props['overshootTrailing']
+//   readonly topThreshold?: Props['leadingThreshold']
+//   readonly bottomThreshold?: Props['trailingThreshold']
+// }
 
-const Vertical = (
-  {
-    renderTopItem,
-    renderBottomItem,
-    overshootTop,
-    overshootBottom,
-    topThreshold,
-    bottomThreshold,
-    ...props
-  }: VerticalSwipeableProps & { readonly children?: React.ReactNode },
-  forwardedRef?: React.Ref<Swipeable>
-) => (
-  <Swipeable
-    {...props}
-    ref={forwardedRef}
-    direction={'vertical'}
-    renderLeadingItem={renderTopItem}
-    renderTrailingItem={renderBottomItem}
-    overshootLeading={overshootTop}
-    overshootTrailing={overshootBottom}
-    leadingThreshold={topThreshold}
-    trailingThreshold={bottomThreshold}
-  />
-)
+// const Vertical = (
+//   {
+//     renderTopItem,
+//     renderBottomItem,
+//     overshootTop,
+//     overshootBottom,
+//     topThreshold,
+//     bottomThreshold,
+//     ...props
+//   }: VerticalSwipeableProps & { readonly children?: React.ReactNode },
+//   forwardedRef?: React.Ref<Swipeable>
+// ) => (
+//   <Swipeable
+//     {...props}
+//     ref={forwardedRef}
+//     direction={'vertical'}
+//     renderLeadingItem={renderTopItem}
+//     renderTrailingItem={renderBottomItem}
+//     overshootLeading={overshootTop}
+//     overshootTrailing={overshootBottom}
+//     leadingThreshold={topThreshold}
+//     trailingThreshold={bottomThreshold}
+//   />
+// )
 
-const VerticalSwipeable = React.forwardRef(Vertical)
+// const VerticalSwipeable = React.forwardRef(Vertical)
 
 const Actions = ({ gapSize, itemWidth, item }: SwipeableItemProps) => {
   return (
@@ -884,28 +1084,86 @@ const Actions = ({ gapSize, itemWidth, item }: SwipeableItemProps) => {
   )
 }
 
-const VerticalActions = () => (
-  <>
-    <View
-      style={{
-        height: '50%',
-        backgroundColor: 'yellow'
-      }}
-    />
-    <View
-      style={{
-        height: '50%',
-        backgroundColor: 'purple'
-      }}
-    />
-  </>
-)
+// const VerticalActions = () => (
+//   <>
+//     <View
+//       style={{
+//         height: '50%',
+//         backgroundColor: 'yellow'
+//       }}
+//     />
+//     <View
+//       style={{
+//         height: '50%',
+//         backgroundColor: 'purple'
+//       }}
+//     />
+//   </>
+// )
+
+type FlatListItemProps = Props & {
+  readonly itemKey: string
+  readonly onMount: (itemKey: string, ref: React.RefObject<Swipeable>) => void
+  readonly onUnmount: (itemKey: string) => void
+  readonly onOpen: (itemKey: string) => void
+  readonly onStartDrag: (itemKey: string) => void
+  readonly onEndDrag: () => void
+}
+
+class SwipeableFlatListItem extends React.Component<FlatListItemProps> {
+  private readonly ref = React.createRef<Swipeable>()
+
+  componentDidMount() {
+    this.props.onMount(this.props.itemKey, this.ref)
+  }
+
+  componentWillUnmount() {
+    this.props.onUnmount(this.props.itemKey)
+  }
+
+  render() {
+    return (
+      <Swipeable
+        {...this.props}
+        ref={this.ref}
+        onChange={this.onChange}
+        onDragStart={this.onDragStart}
+        onDragEnd={this.onDragEnd}
+      />
+    )
+  }
+
+  private readonly onDragStart = () => {
+    const { onDragStart, onStartDrag, itemKey } = this.props
+
+    onStartDrag(itemKey)
+    onDragStart?.()
+  }
+
+  private readonly onDragEnd = () => {
+    const { onDragEnd, onEndDrag } = this.props
+
+    onEndDrag()
+    onDragEnd?.()
+  }
+
+  private readonly onChange: Props['onChange'] = (options) => {
+    const { onOpen, onChange, itemKey } = this.props
+
+    if (options.action === 'opening-threshold-passed') {
+      onOpen(itemKey)
+    }
+
+    onChange?.(options)
+  }
+}
 
 type ListProps<T> = {} & FlatListProps<T>
 
-class SwipeableFlatList<T> extends React.Component<ListProps<T>> {
+class SwipeableFlatList<T extends { readonly key?: string }> extends React.Component<ListProps<T>> {
   private readonly ref = React.createRef<FlatList<T>>()
   private readonly panConfig: PanGestureHandlerProperties
+  private readonly itemRefs: { [key: string]: React.RefObject<Swipeable> | undefined } = {}
 
   constructor(props: ListProps<T>) {
     super(props)
@@ -916,23 +1174,65 @@ class SwipeableFlatList<T> extends React.Component<ListProps<T>> {
   }
 
   render() {
-    console.warn('r')
     const { ...props } = this.props
     return <FlatList {...props} ref={this.ref} renderItem={this.renderItem} />
   }
 
   private readonly renderItem = (info: ListRenderItemInfo<T>) => {
-    // console.warn(`ri`)
-    // return <View>{this.props.renderItem?.(info)}</View>
+    const key = info.item.key ?? this.props.keyExtractor?.(info.item, info.index)
+
+    assertDefined(key, 'item key should be defined!')
+
     return (
-      <HorizontalSwipeable
+      <SwipeableFlatListItem
+        direction={'horizontal'}
         panGestureHandlerConfig={this.panConfig}
-        renderLeftItem={Actions}
-        renderRightItem={Actions}
+        renderLeadingItem={Actions}
+        renderTrailingItem={Actions}
+        itemKey={key}
+        onMount={this.itemMounted}
+        onUnmount={this.itemUnmounted}
+        onOpen={this.itemOpened}
+        onStartDrag={this.dragStarted}
+        onEndDrag={this.dragEnded}
       >
         {this.props.renderItem?.(info)}
-      </HorizontalSwipeable>
+      </SwipeableFlatListItem>
     )
+  }
+
+  private readonly dragStarted = (itemKey: string) => {
+    console.warn(`start ${itemKey}`)
+    Object.keys(this.itemRefs).forEach((key: string) => {
+      if (key !== itemKey) {
+        this.itemRefs[key]?.current?.disableDrag()
+      } else {
+        // this.itemRefs[key]?.current?.disableDrag()
+      }
+    })
+  }
+
+  private readonly dragEnded = () => {
+    console.warn(`end`)
+    Object.keys(this.itemRefs).forEach((key: string) => {
+      this.itemRefs[key]?.current?.enableDrag()
+    })
+  }
+
+  private readonly itemMounted = (itemKey: string, ref: React.RefObject<Swipeable>) => {
+    this.itemRefs[itemKey] = ref
+  }
+
+  private readonly itemUnmounted = (itemKey: string) => {
+    this.itemRefs[itemKey] = undefined
+  }
+
+  private readonly itemOpened = (itemKey: string) => {
+    Object.keys(this.itemRefs).forEach((key: string) => {
+      if (key !== itemKey) {
+        this.itemRefs[key]?.current?.close()
+      }
+    })
   }
 }
 
@@ -964,9 +1264,17 @@ class App extends React.Component<{}, { readonly items: ReadonlyArray<{ readonly
   private readonly orig = React.createRef<OriginalSwipeable>()
 
   state = {
-    items: Array(50)
+    items: Array(3)
       .fill(0)
       .map((_, i) => ({ key: `${i}` }))
+  }
+
+  blockJS = () => {
+    const start = new Date()
+    let end = new Date()
+    while (end.getTime() - start.getTime() < 20000) {
+      end = new Date()
+    }
   }
 
   componentDidMount() {
@@ -993,6 +1301,7 @@ class App extends React.Component<{}, { readonly items: ReadonlyArray<{ readonly
         }}
       >
         <StatusBar hidden={true} />
+        <Button title={'blockjs'} onPress={this.blockJS} />
         <SwipeableFlatList
           data={this.state.items}
           renderItem={Item}

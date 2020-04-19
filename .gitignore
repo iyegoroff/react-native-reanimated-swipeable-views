@@ -47,3 +47,5 @@ buck-out/
 dist
 .ionide/
 *.tgz
+
+example_old
