@@ -37,11 +37,11 @@
     "react-native-gesture-handler": "*"
   },
   "devDependencies": {
+    "@react-native-community/eslint-config": "0.0.5",
     "@types/react": "^16.9.32",
     "@types/react-native": "^0.62.1",
     "@typescript-eslint/eslint-plugin": "^2.26.0",
     "@typescript-eslint/parser": "^2.26.0",
-    "@react-native-community/eslint-config": "0.0.5",
     "eslint": "^6.8.0",
     "eslint-config-prettier": "^6.10.1",
     "eslint-config-standard-with-typescript": "^15.0.1",
@@ -54,7 +54,7 @@
     "eslint-plugin-react-hooks": "^3.0.0",
     "eslint-plugin-standard": "^4.0.1",
     "prettier": "^2.0.2",
-    "react-native-gesture-handler": "^1.6.1",
+    "react-native-gesture-handler": "github:iyegoroff/react-native-gesture-handler#waitForGroup",
     "react-native-reanimated": "^1.8.0",
     "typescript": "^3.8.3"
   }

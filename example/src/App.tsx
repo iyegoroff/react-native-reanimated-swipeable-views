@@ -259,8 +259,6 @@ type Props = {
   readonly springConfig?: Omit<Animated.SpringConfig, 'toValue'>
   readonly transitionConfig?: Omit<Animated.TimingConfig, 'toValue'>
   readonly panGestureHandlerConfig?: PanGestureHandlerProperties
-  readonly onDragStart?: () => void
-  readonly onDragEnd?: () => void
   readonly onChange?: (options: {
     readonly item: Item
     readonly action: 'opened' | 'closed' | 'opening-threshold-passed' | 'closing-threshold-passed'
@@ -274,7 +272,6 @@ class Swipeable extends React.Component<Props> {
   private readonly size = new Value<number>(0)
   private readonly transition = new Value<Transition>(Transition.none)
   private readonly resetSpring = new Value<0 | 1>(0)
-  private readonly dragEnabled = new Value<0 | 1>(1)
   private readonly translation: Animated.Node<number>
   private readonly panGestureEvent: (event: PanGestureHandlerGestureEvent) => void
   private readonly leadingItemProps: SwipeableItemProps
@@ -296,9 +293,7 @@ class Swipeable extends React.Component<Props> {
       inertia = 0.1,
       renderLeadingItem,
       renderTrailingItem,
-      onChange,
-      onDragStart,
-      onDragEnd
+      onChange
     } = props
 
     const hasLeadingItem = renderLeadingItem !== undefined
@@ -325,7 +320,6 @@ class Swipeable extends React.Component<Props> {
     const activeSpring = new Value(Spring.none)
     const activeLimit = new Value(Limit.none)
     const nextDragPos = add(translation, sub(dragOffset, prevDragOffset))
-    const dragEnded = new Value(1)
     const runSpringTransition = (dest: Animated.Node<number>) =>
       this.runSpring({
         clock,
@@ -617,40 +611,24 @@ class Swipeable extends React.Component<Props> {
       translation
     ] as const
 
-    const checkDragEnd = cond(and(defined(onDragEnd !== undefined), eq(dragEnded, 0)), [
-      set(dragEnded, 1),
-      call([], () => onDragEnd?.())
-    ])
-
     const dragAnimation = cond(
-      eq(this.dragEnabled, 1),
+      eq(gestureState, GestureState.BEGAN),
+      reset,
+
       cond(
-        eq(gestureState, GestureState.BEGAN),
-        [
-          cond(
-            defined(onDragStart !== undefined),
-            call([], () => onDragStart?.())
-          ),
-          set(dragEnded, 0),
-          reset
-        ],
+        eq(gestureState, GestureState.ACTIVE),
+        active,
 
         cond(
-          eq(gestureState, GestureState.ACTIVE),
-          active,
-
-          cond(
-            or(
-              eq(gestureState, GestureState.END),
-              eq(gestureState, GestureState.CANCELLED),
-              eq(gestureState, GestureState.FAILED)
-            ),
-            [checkDragEnd, end],
-            translation
-          )
+          or(
+            eq(gestureState, GestureState.END),
+            eq(gestureState, GestureState.CANCELLED),
+            eq(gestureState, GestureState.FAILED)
+          ),
+          end,
+          translation
         )
-      ),
-      [checkDragEnd, translation]
+      )
     )
 
     const runTimingTransition = (dest: Animated.Node<number>) =>
@@ -816,14 +794,6 @@ class Swipeable extends React.Component<Props> {
   public close() {
     this.resetSpring.setValue(1)
     this.transition.setValue(Transition.close)
-  }
-
-  public enableDrag() {
-    this.dragEnabled.setValue(1)
-  }
-
-  public disableDrag() {
-    this.dragEnabled.setValue(0)
   }
 
   private readonly onLeadingLayout = ({
@@ -1106,8 +1076,6 @@ type FlatListItemProps = Props & {
   readonly onMount: (itemKey: string, ref: React.RefObject<Swipeable>) => void
   readonly onUnmount: (itemKey: string) => void
   readonly onOpen: (itemKey: string) => void
-  readonly onStartDrag: (itemKey: string) => void
-  readonly onEndDrag: () => void
 }
 
 class SwipeableFlatListItem extends React.Component<FlatListItemProps> {
@@ -1122,29 +1090,7 @@ class SwipeableFlatListItem extends React.Component<FlatListItemProps> {
   }
 
   render() {
-    return (
-      <Swipeable
-        {...this.props}
-        ref={this.ref}
-        onChange={this.onChange}
-        onDragStart={this.onDragStart}
-        onDragEnd={this.onDragEnd}
-      />
-    )
-  }
-
-  private readonly onDragStart = () => {
-    const { onDragStart, onStartDrag, itemKey } = this.props
-
-    onStartDrag(itemKey)
-    onDragStart?.()
-  }
-
-  private readonly onDragEnd = () => {
-    const { onDragEnd, onEndDrag } = this.props
-
-    onEndDrag()
-    onDragEnd?.()
+    return <Swipeable {...this.props} ref={this.ref} onChange={this.onChange} />
   }
 
   private readonly onChange: Props['onChange'] = (options) => {
@@ -1162,15 +1108,9 @@ type ListProps<T> = {} & FlatListProps<T>
 
 class SwipeableFlatList<T extends { readonly key?: string }> extends React.Component<ListProps<T>> {
   private readonly ref = React.createRef<FlatList<T>>()
-  private readonly panConfig: PanGestureHandlerProperties
   private readonly itemRefs: { [key: string]: React.RefObject<Swipeable> | undefined } = {}
-
-  constructor(props: ListProps<T>) {
-    super(props)
-
-    this.panConfig = {
-      waitFor: this.ref
-    }
+  private readonly panConfig: PanGestureHandlerProperties = {
+    waitForGroup: 'react-native-reanimated-swipeable-views'
   }
 
   render() {
@@ -1185,38 +1125,18 @@ class SwipeableFlatList<T extends { readonly key?: string }> extends React.Compo
 
     return (
       <SwipeableFlatListItem
-        direction={'horizontal'}
         panGestureHandlerConfig={this.panConfig}
+        direction={'horizontal'}
         renderLeadingItem={Actions}
         renderTrailingItem={Actions}
         itemKey={key}
         onMount={this.itemMounted}
         onUnmount={this.itemUnmounted}
         onOpen={this.itemOpened}
-        onStartDrag={this.dragStarted}
-        onEndDrag={this.dragEnded}
       >
         {this.props.renderItem?.(info)}
       </SwipeableFlatListItem>
     )
-  }
-
-  private readonly dragStarted = (itemKey: string) => {
-    console.warn(`start ${itemKey}`)
-    Object.keys(this.itemRefs).forEach((key: string) => {
-      if (key !== itemKey) {
-        this.itemRefs[key]?.current?.disableDrag()
-      } else {
-        // this.itemRefs[key]?.current?.disableDrag()
-      }
-    })
-  }
-
-  private readonly dragEnded = () => {
-    console.warn(`end`)
-    Object.keys(this.itemRefs).forEach((key: string) => {
-      this.itemRefs[key]?.current?.enableDrag()
-    })
   }
 
   private readonly itemMounted = (itemKey: string, ref: React.RefObject<Swipeable>) => {
