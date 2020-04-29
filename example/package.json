@@ -16,16 +16,14 @@
     "generate:android:signing-key": "keytool -genkey -v -keystore example.keystore -alias example -keyalg RSA -keysize 2048 -validity 10000 && mv example.keystore android/app",
     "generate:android:apk": "npm run generate:android:bundle && cd android && ./gradlew assembleRelease",
     "generate:android:bundle": "npm run build && react-native bundle --platform android --dev false --entry-file index.js --bundle-output ./android/app/src/main/assets/index.android.bundle",
-    "build:docker:image": "docker build -t react-native-reanimated-swipeable-list-example.image -f ./Dockerfile ../",
-    "extract:docker:apk": "docker create -ti --name react-native-reanimated-swipeable-list-example-container react-native-reanimated-swipeable-list-example.image /bin/bash && docker cp react-native-reanimated-swipeable-list-example-container:/package/example/android/app/build/outputs/apk/release/app-release.apk react-native-reanimated-swipeable-list-example.apk && docker rm -fv react-native-reanimated-swipeable-list-example-container",
+    "build:docker:image": "docker build -t react-native-reanimated-swipeable-views-example.image -f ./Dockerfile ../",
+    "extract:docker:apk": "docker create -ti --name react-native-reanimated-swipeable-views-example-container react-native-reanimated-swipeable-views-example.image /bin/bash && docker cp react-native-reanimated-swipeable-views-example-container:/package/example/android/app/build/outputs/apk/release/app-release.apk react-native-reanimated-swipeable-views-example.apk && docker rm -fv react-native-reanimated-swipeable-views-example-container",
     "build:release:docker": "npm run build:docker:image && npm run extract:docker:apk"
   },
   "dependencies": {
     "react": "16.11.0",
     "react-native": "0.62.2",
-    "react-native-gesture-handler": "github:iyegoroff/react-native-gesture-handler#waitForGroup",
-    "react-native-reanimated": "^1.8.0",
-    "react-native-reanimated-swipeable-list": "file:../",
+    "react-native-reanimated-swipeable-views": "file:../",
     "ts-tiny-invariant": "0.0.3"
   },
   "devDependencies": {

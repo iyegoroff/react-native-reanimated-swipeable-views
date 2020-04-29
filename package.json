@@ -1,5 +1,5 @@
 {
-  "name": "react-native-reanimated-swipeable-list",
+  "name": "react-native-reanimated-swipeable-views",
   "version": "0.0.1",
   "description": "Natively animated swipeable FlatList, SectionList & HOC for wrapping custom lists",
   "main": "dist/index.js",
@@ -23,12 +23,12 @@
   "author": "iyegoroff <iegoroff@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/iyegoroff/react-native-reanimated-swipeable-list/issues"
+    "url": "https://github.com/iyegoroff/react-native-reanimated-swipeable-views/issues"
   },
-  "homepage": "https://github.com/iyegoroff/react-native-reanimated-swipeable-list#readme",
+  "homepage": "https://github.com/iyegoroff/react-native-reanimated-swipeable-views#readme",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/iyegoroff/react-native-reanimated-swipeable-list.git"
+    "url": "git+https://github.com/iyegoroff/react-native-reanimated-swipeable-views.git"
   },
   "peerDependencies": {
     "react": "*",
@@ -55,7 +55,10 @@
     "eslint-plugin-standard": "^4.0.1",
     "prettier": "^2.0.2",
     "react-native-gesture-handler": "github:iyegoroff/react-native-gesture-handler#waitForGroup",
-    "react-native-reanimated": "^1.8.0",
+    "react-native-reanimated": "github:software-mansion/react-native-reanimated",
     "typescript": "^3.8.3"
+  },
+  "dependencies": {
+    "ts-is-defined": "0.0.3"
   }
 }

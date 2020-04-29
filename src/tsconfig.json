@@ -12,7 +12,6 @@
     "noEmitOnError": true,
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
-    "removeComments": true,
-    "types": ["react-native-gesture-handler"]
+    "removeComments": true
   }
 }

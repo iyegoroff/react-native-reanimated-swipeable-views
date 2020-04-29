@@ -16,7 +16,7 @@ const extraNodeModules = {
   'react-native-reanimated': path.resolve(__dirname, 'node_modules/react-native-reanimated'),
   'react-native-gesture-handler': path.resolve(__dirname, 'node_modules/react-native-gesture-handler'),
   '@babel/runtime': path.resolve(__dirname, 'node_modules/@babel/runtime'),
-  'react-native-reanimated-swipeable-list': packagePath
+  'react-native-reanimated-swipeable-views': packagePath
 }
 
 module.exports = {
