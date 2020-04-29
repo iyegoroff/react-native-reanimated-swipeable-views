@@ -3,7 +3,7 @@ import {
   View,
   TouchableOpacity,
   Text,
-  SectionListData,
+  // SectionListData,
   StatusBar,
   Button,
   StyleSheet
@@ -123,22 +123,22 @@ const Item = ({ item }: { readonly item: { readonly key: string } }) => (
   </View>
 )
 
-const SectionHeader = ({
-  section
-}: {
-  readonly section: SectionListData<{ readonly key: string }>
-}) => (
-  <View
-    style={{
-      height: 15,
-      backgroundColor: 'cyan',
-      padding: 5,
-      justifyContent: 'center'
-    }}
-  >
-    <Text>{section.key}</Text>
-  </View>
-)
+// const SectionHeader = ({
+//   section
+// }: {
+//   readonly section: SectionListData<{ readonly key: string }>
+// }) => (
+//   <View
+//     style={{
+//       height: 15,
+//       backgroundColor: 'cyan',
+//       padding: 5,
+//       justifyContent: 'center'
+//     }}
+//   >
+//     <Text>{section.key}</Text>
+//   </View>
+// )
 
 const Separator = () => (
   <View
@@ -212,7 +212,7 @@ class App extends React.Component<
           renderLeadingItem={Actions}
           renderTrailingItem={Actions}
         >
-          <Item item={{ key: '123'}} />
+          <Item item={{ key: '123' }} />
         </Swipeable>
         <Button title={'blockjs'} onPress={this.blockJS} />
         {/* <Swipeable

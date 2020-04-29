@@ -719,16 +719,19 @@ export class Swipeable extends React.Component<SwipeableProps> implements Swipea
       transform: [
         isHorizontal ? { translateX: this.translation } : { translateY: this.translation }
       ]
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
 
     this.leadingItemStyle = {
       ...(isHorizontal ? styles.leadingHorizontalItem : styles.leadingVerticalItem),
       zIndex: cond(greaterThan(this.translation, snapPoints.middle), 0, -1)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
 
     this.trailingItemStyle = {
       ...(isHorizontal ? styles.trailingHorizontalItem : styles.trailingVerticalItem),
       zIndex: cond(lessThan(this.translation, snapPoints.middle), 0, -1)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } as any
 
     this.leadingItemProps = {

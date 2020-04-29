@@ -3,5 +3,9 @@
   "compilerOptions": {
     "outDir": "../build",
     "types": []
-  }
+  },
+  "include": [
+    "App.tsx",
+    "../../src/index.d.ts"
+  ]
 }
