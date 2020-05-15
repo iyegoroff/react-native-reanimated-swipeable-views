@@ -269,6 +269,7 @@ type SwipeableItemProps = {
   readonly gapSize: Animated.Node<number>
   readonly itemWidth: Animated.Node<number>
   readonly item?: Item
+  readonly translation?: Animated.Node<number>
 }
 
 export type SwipeableProps = {
@@ -737,13 +738,15 @@ export class Swipeable extends React.Component<SwipeableProps> implements Swipea
     this.leadingItemProps = {
       gapSize: max(this.translation, 0),
       itemWidth: this.leadingSize,
-      item: 'leading'
+      item: 'leading',
+      translation: this.translation
     }
 
     this.trailingItemProps = {
       gapSize: max(multiply(this.translation, -1), 0),
       itemWidth: sub(this.size, this.trailingOffset),
-      item: 'trailing'
+      item: 'trailing',
+      translation: this.translation
     }
   }
 
