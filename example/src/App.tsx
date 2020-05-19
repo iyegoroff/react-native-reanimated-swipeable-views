@@ -197,7 +197,6 @@ class App extends React.Component<
   // }
 
   render() {
-    console.warn('render')
     return (
       <View
         style={{
@@ -292,7 +291,7 @@ class App extends React.Component<
           ItemSeparatorComponent={Separator}
           ref={this.rf2}
         /> */}
-        <WaitForGroup ref={this.wait} />
+        {/* <WaitForGroup ref={this.wait} />
         <AdaptedSwipeableFlatList
           allowMultiOpen={false}
           swipeableProps={{
@@ -315,7 +314,7 @@ class App extends React.Component<
           renderItem={Item}
           ItemSeparatorComponent={Separator}
           ref={this.rf}
-        />
+        /> */}
         {/* {this.state.items.map((item) => (
           <HorizontalSwipeable key={item.key} renderLeftItem={Actions} renderRightItem={Actions}>
             <Item item={item} />
