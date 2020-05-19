@@ -6,7 +6,7 @@ import {
   // SectionListData,
   StatusBar,
   Button,
-  StyleSheet
+  // StyleSheet
 } from 'react-native'
 import Animated, { min, divide } from 'react-native-reanimated'
 import {
