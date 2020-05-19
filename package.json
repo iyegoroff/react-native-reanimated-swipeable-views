@@ -1,6 +1,6 @@
 {
   "name": "react-native-reanimated-swipeable-views",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Natively animated swipeable FlatList, SectionList & HOC for wrapping custom lists",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
