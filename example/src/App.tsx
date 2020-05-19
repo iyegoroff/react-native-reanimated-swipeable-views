@@ -93,22 +93,22 @@ const Actions = ({ gapSize, itemWidth, item }: SwipeableItemProps) => {
   )
 }
 
-const SimpleActions = () => (
-  <>
-    <View
-      style={{
-        width: '50%',
-        backgroundColor: 'yellow'
-      }}
-    />
-    <View
-      style={{
-        width: '50%',
-        backgroundColor: 'purple'
-      }}
-    />
-  </>
-)
+// const SimpleActions = () => (
+//   <>
+//     <View
+//       style={{
+//         width: '50%',
+//         backgroundColor: 'yellow'
+//       }}
+//     />
+//     <View
+//       style={{
+//         width: '50%',
+//         backgroundColor: 'purple'
+//       }}
+//     />
+//   </>
+// )
 
 const Item = ({ item }: { readonly item: { readonly key: string } }) => (
   <View
@@ -140,14 +140,14 @@ const Item = ({ item }: { readonly item: { readonly key: string } }) => (
 //   </View>
 // )
 
-const Separator = () => (
-  <View
-    style={{
-      height: StyleSheet.hairlineWidth,
-      backgroundColor: 'black'
-    }}
-  />
-)
+// const Separator = () => (
+//   <View
+//     style={{
+//       height: StyleSheet.hairlineWidth,
+//       backgroundColor: 'black'
+//     }}
+//   />
+// )
 
 class App extends React.Component<
   {},
