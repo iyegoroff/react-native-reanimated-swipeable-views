@@ -16,6 +16,7 @@ type Item = 'leading' | 'trailing'
 export type SwipeableItemProps = {
   readonly gapSize: Animated.Node<number>
   readonly itemWidth: Animated.Node<number>
+  readonly translation: Animated.Node<number>
   readonly item?: Item
 }
 
