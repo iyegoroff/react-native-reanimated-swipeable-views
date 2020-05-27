@@ -269,7 +269,7 @@ type SwipeableItemProps = {
   readonly gapSize: Animated.Node<number>
   readonly itemWidth: Animated.Node<number>
   readonly item?: Item
-  readonly translation?: Animated.Node<number>
+  readonly translation: Animated.Node<number>
 }
 
 export type SwipeableProps = {
