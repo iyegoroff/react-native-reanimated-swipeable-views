@@ -285,7 +285,9 @@ export type SwipeableProps = {
   readonly inertia?: number
   readonly springConfig?: Omit<Animated.SpringConfig, 'toValue'>
   readonly transitionConfig?: Omit<Animated.TimingConfig, 'toValue'>
-  readonly panGestureHandlerProps?: PanGestureHandlerProperties
+  readonly panGestureHandlerProps?: PanGestureHandlerProperties & {
+    ref?: React.RefObject<PanGestureHandler>
+  }
   readonly onChange?: (options: {
     readonly item: Item
     readonly action: 'opened' | 'closed' | 'opening-threshold-passed' | 'closing-threshold-passed'
