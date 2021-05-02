@@ -825,8 +825,7 @@ export class Swipeable extends React.Component<SwipeableProps> implements Swipea
         set(config.toValue, dest),
         startClock(clock)
       ]),
-      spring(clock, state, config),
-      cond(state.finished, stopClock(clock)),
+      cond(or(eq(value, dest), state.finished), stopClock(clock), spring(clock, state, config)),
       state.position
     ])
   }
