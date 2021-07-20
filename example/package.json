@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "react": "16.11.0",
-    "react-native": "0.62.2",
+    "react-native": "0.62.3",
     "react-native-gesture-handler": "github:iyegoroff/react-native-gesture-handler#waitForGroup",
     "react-native-reanimated": "github:software-mansion/react-native-reanimated",
     "react-native-reanimated-swipeable-views": "file:../",
